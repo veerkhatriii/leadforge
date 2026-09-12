@@ -295,9 +295,33 @@
                     <h2>Your leads</h2>
                 </div>
 
-                <span class="lead-count" id="visibleLeadCount">
-                    0 leads
-                </span>
+                <div class="heading-actions">
+
+                    <span class="lead-count" id="visibleLeadCount">
+                        0 leads
+                    </span>
+
+                    <div class="view-switcher">
+
+                        <button
+                            class="view-btn active"
+                            id="tableViewBtn"
+                            type="button"
+                        >
+                            ☷ Table
+                        </button>
+
+                        <button
+                            class="view-btn"
+                            id="pipelineViewBtn"
+                            type="button"
+                        >
+                            ▦ Pipeline
+                        </button>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -322,36 +346,60 @@
 
                 <select id="statusFilter">
 
-                    <option value="all">All statuses</option>
+                    <option value="all">
+                        All statuses
+                    </option>
 
-                    <option value="New">New</option>
+                    <option value="New">
+                        New
+                    </option>
 
-                    <option value="Contacted">Contacted</option>
+                    <option value="Contacted">
+                        Contacted
+                    </option>
 
-                    <option value="Interested">Interested</option>
+                    <option value="Interested">
+                        Interested
+                    </option>
 
-                    <option value="Closed">Closed</option>
+                    <option value="Closed">
+                        Closed
+                    </option>
 
                 </select>
 
 
                 <select id="priorityFilter">
 
-                    <option value="all">All priorities</option>
+                    <option value="all">
+                        All priorities
+                    </option>
 
-                    <option value="High">High priority</option>
+                    <option value="High">
+                        High priority
+                    </option>
 
-                    <option value="Medium">Medium priority</option>
+                    <option value="Medium">
+                        Medium priority
+                    </option>
 
-                    <option value="Low">Low priority</option>
+                    <option value="Low">
+                        Low priority
+                    </option>
 
                 </select>
 
             </div>
 
 
-            <!-- TABLE -->
-            <div class="table-container">
+            <!-- =========================
+                 TABLE VIEW
+            ========================== -->
+
+            <div
+                class="table-container"
+                id="tableView"
+            >
 
                 <table>
 
@@ -360,30 +408,26 @@
                         <tr>
 
                             <th>Business</th>
-
                             <th>Contact</th>
-
                             <th>Source</th>
-
                             <th>Value</th>
-
                             <th>Priority</th>
-
                             <th>Status</th>
-
                             <th></th>
 
                         </tr>
 
                     </thead>
 
-
                     <tbody id="leadsTable"></tbody>
 
                 </table>
 
 
-                <div class="empty-state" id="emptyState">
+                <div
+                    class="empty-state"
+                    id="emptyState"
+                >
 
                     <div class="empty-illustration">
                         ✦
@@ -395,9 +439,202 @@
                         Start building your pipeline by adding your first prospect.
                     </p>
 
-                    <button class="primary-btn" id="emptyAddBtn">
+                    <button
+                        class="primary-btn"
+                        id="emptyAddBtn"
+                        type="button"
+                    >
                         ＋ Add your first lead
                     </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 PIPELINE VIEW
+            ========================== -->
+
+            <div
+                class="pipeline-view"
+                id="pipelineView"
+                style="display: none;"
+            >
+
+                <div class="pipeline-board">
+
+
+                    <!-- NEW -->
+
+                    <div
+                        class="kanban-column"
+                        data-status="New"
+                    >
+
+                        <div class="kanban-header">
+
+                            <div class="kanban-title-wrap">
+
+                                <span class="kanban-dot new-dot"></span>
+
+                                <h3>New</h3>
+
+                                <span
+                                    class="kanban-count"
+                                    data-count="New"
+                                >
+                                    0
+                                </span>
+
+                            </div>
+
+                            <strong
+                                class="kanban-value"
+                                data-value="New"
+                            >
+                                ₹0
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="kanban-dropzone"
+                            data-dropzone="New"
+                        ></div>
+
+                    </div>
+
+
+
+                    <!-- CONTACTED -->
+
+                    <div
+                        class="kanban-column"
+                        data-status="Contacted"
+                    >
+
+                        <div class="kanban-header">
+
+                            <div class="kanban-title-wrap">
+
+                                <span class="kanban-dot contacted-dot"></span>
+
+                                <h3>Contacted</h3>
+
+                                <span
+                                    class="kanban-count"
+                                    data-count="Contacted"
+                                >
+                                    0
+                                </span>
+
+                            </div>
+
+                            <strong
+                                class="kanban-value"
+                                data-value="Contacted"
+                            >
+                                ₹0
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="kanban-dropzone"
+                            data-dropzone="Contacted"
+                        ></div>
+
+                    </div>
+
+
+
+                    <!-- INTERESTED -->
+
+                    <div
+                        class="kanban-column"
+                        data-status="Interested"
+                    >
+
+                        <div class="kanban-header">
+
+                            <div class="kanban-title-wrap">
+
+                                <span class="kanban-dot interested-dot"></span>
+
+                                <h3>Interested</h3>
+
+                                <span
+                                    class="kanban-count"
+                                    data-count="Interested"
+                                >
+                                    0
+                                </span>
+
+                            </div>
+
+                            <strong
+                                class="kanban-value"
+                                data-value="Interested"
+                            >
+                                ₹0
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="kanban-dropzone"
+                            data-dropzone="Interested"
+                        ></div>
+
+                    </div>
+
+
+
+                    <!-- CLOSED -->
+
+                    <div
+                        class="kanban-column"
+                        data-status="Closed"
+                    >
+
+                        <div class="kanban-header">
+
+                            <div class="kanban-title-wrap">
+
+                                <span class="kanban-dot closed-dot"></span>
+
+                                <h3>Closed</h3>
+
+                                <span
+                                    class="kanban-count"
+                                    data-count="Closed"
+                                >
+                                    0
+                                </span>
+
+                            </div>
+
+                            <strong
+                                class="kanban-value"
+                                data-value="Closed"
+                            >
+                                ₹0
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="kanban-dropzone"
+                            data-dropzone="Closed"
+                        ></div>
+
+                    </div>
+
 
                 </div>
 
