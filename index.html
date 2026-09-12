@@ -3,12 +3,645 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LeadForge</title>
+
+    <meta name="description" content="LeadForge — Modern lead management for freelancers and agencies.">
+
+    <title>LeadForge — Lead Management</title>
+
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-    <h1>LeadForge</h1>
-    <p>Your simple lead management tool.</p>
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-mark">L</div>
+
+            <div>
+                <strong>LeadForge</strong>
+                <span>Lead Management</span>
+            </div>
+        </div>
+
+
+        <div class="sidebar-label">WORKSPACE</div>
+
+        <nav>
+
+            <a href="#" class="nav-link active">
+                <span>⌂</span>
+                Dashboard
+            </a>
+
+            <a href="#leads" class="nav-link">
+                <span>☷</span>
+                All Leads
+                <b id="sidebarLeadCount">0</b>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-label">TOOLS</div>
+
+        <nav>
+
+            <button class="nav-link nav-button" id="sidebarAddBtn">
+                <span>＋</span>
+                Add Lead
+            </button>
+
+            <button class="nav-link nav-button" id="sidebarExportBtn">
+                <span>↥</span>
+                Export CSV
+            </button>
+
+        </nav>
+
+
+        <div class="sidebar-spacer"></div>
+
+
+        <div class="sidebar-footer">
+
+            <div class="mini-avatar">V</div>
+
+            <div>
+                <strong>Workspace</strong>
+                <span>Personal account</span>
+            </div>
+
+            <button id="themeBtn" title="Toggle theme">☾</button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+
+            <div class="mobile-brand">
+                <div class="brand-mark">L</div>
+                <strong>LeadForge</strong>
+            </div>
+
+            <div class="topbar-actions">
+
+                <div class="shortcut">
+                    Press <kbd>N</kbd> to add lead
+                </div>
+
+                <button class="primary-btn" id="openModalBtn">
+                    <span>＋</span>
+                    Add Lead
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- PAGE HEADING -->
+        <section class="page-heading">
+
+            <div>
+                <div class="eyebrow">OVERVIEW</div>
+
+                <h1>Good work. Let's close some leads.</h1>
+
+                <p>
+                    Track prospects, manage your pipeline and turn leads into clients.
+                </p>
+            </div>
+
+            <div class="date-pill" id="currentDate"></div>
+
+        </section>
+
+
+        <!-- STATS -->
+        <section class="stats-grid">
+
+            <div class="stat-card">
+
+                <div class="stat-header">
+                    <span>Total Leads</span>
+                    <div class="stat-icon purple">◎</div>
+                </div>
+
+                <strong id="totalLeads">0</strong>
+
+                <div class="stat-footer">
+                    <span class="trend">↗ Active pipeline</span>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-header">
+                    <span>New Leads</span>
+                    <div class="stat-icon blue">✦</div>
+                </div>
+
+                <strong id="newLeads">0</strong>
+
+                <div class="stat-footer">
+                    <span>Waiting for outreach</span>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-header">
+                    <span>Interested</span>
+                    <div class="stat-icon orange">↗</div>
+                </div>
+
+                <strong id="interestedLeads">0</strong>
+
+                <div class="stat-footer">
+                    <span class="trend">Potential clients</span>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-header">
+                    <span>Closed</span>
+                    <div class="stat-icon green">✓</div>
+                </div>
+
+                <strong id="closedLeads">0</strong>
+
+                <div class="stat-footer">
+                    <span class="trend">Successful deals</span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ANALYTICS -->
+        <section class="analytics-grid">
+
+            <div class="analytics-card pipeline-card">
+
+                <div class="card-heading">
+
+                    <div>
+                        <span class="eyebrow">PIPELINE</span>
+                        <h2>Pipeline value</h2>
+                    </div>
+
+                    <span class="live-dot">Live</span>
+
+                </div>
+
+                <div class="pipeline-value" id="pipelineValue">
+                    ₹0
+                </div>
+
+                <div class="pipeline-bar">
+
+                    <div
+                        class="pipeline-progress"
+                        id="pipelineProgress">
+                    </div>
+
+                </div>
+
+                <div class="pipeline-meta">
+
+                    <span>
+                        <b id="interestedValue">₹0</b>
+                        interested
+                    </span>
+
+                    <span>
+                        <b id="closedValue">₹0</b>
+                        closed
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="analytics-card conversion-card">
+
+                <div class="card-heading">
+
+                    <div>
+                        <span class="eyebrow">PERFORMANCE</span>
+                        <h2>Conversion rate</h2>
+                    </div>
+
+                </div>
+
+                <div class="conversion-content">
+
+                    <div class="conversion-circle">
+
+                        <div>
+                            <strong id="conversionRate">0%</strong>
+                            <span>converted</span>
+                        </div>
+
+                    </div>
+
+                    <div class="conversion-info">
+
+                        <div>
+                            <span>Closed leads</span>
+                            <b id="conversionClosed">0</b>
+                        </div>
+
+                        <div>
+                            <span>Total leads</span>
+                            <b id="conversionTotal">0</b>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- LEADS -->
+        <section class="leads-section" id="leads">
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="eyebrow">CRM</span>
+                    <h2>Your leads</h2>
+                </div>
+
+                <span class="lead-count" id="visibleLeadCount">
+                    0 leads
+                </span>
+
+            </div>
+
+
+            <!-- FILTERS -->
+            <div class="filters">
+
+                <div class="search-wrapper">
+
+                    <span>⌕</span>
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search leads..."
+                    >
+
+                    <kbd>⌘ K</kbd>
+
+                </div>
+
+
+                <select id="statusFilter">
+
+                    <option value="all">All statuses</option>
+
+                    <option value="New">New</option>
+
+                    <option value="Contacted">Contacted</option>
+
+                    <option value="Interested">Interested</option>
+
+                    <option value="Closed">Closed</option>
+
+                </select>
+
+
+                <select id="priorityFilter">
+
+                    <option value="all">All priorities</option>
+
+                    <option value="High">High priority</option>
+
+                    <option value="Medium">Medium priority</option>
+
+                    <option value="Low">Low priority</option>
+
+                </select>
+
+            </div>
+
+
+            <!-- TABLE -->
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Business</th>
+
+                            <th>Contact</th>
+
+                            <th>Source</th>
+
+                            <th>Value</th>
+
+                            <th>Priority</th>
+
+                            <th>Status</th>
+
+                            <th></th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="leadsTable"></tbody>
+
+                </table>
+
+
+                <div class="empty-state" id="emptyState">
+
+                    <div class="empty-illustration">
+                        ✦
+                    </div>
+
+                    <h3>No leads found</h3>
+
+                    <p>
+                        Start building your pipeline by adding your first prospect.
+                    </p>
+
+                    <button class="primary-btn" id="emptyAddBtn">
+                        ＋ Add your first lead
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <footer class="footer">
+            <span>LeadForge</span>
+            <span>Built for freelancers & agencies</span>
+        </footer>
+
+    </main>
+
+</div>
+
+
+<!-- MODAL -->
+
+<div class="modal-overlay" id="modal">
+
+    <div class="modal">
+
+        <div class="modal-top">
+
+            <div>
+                <span class="eyebrow">NEW PROSPECT</span>
+                <h2 id="modalTitle">Add a new lead</h2>
+                <p>Save a prospect to your LeadForge pipeline.</p>
+            </div>
+
+            <button class="close-btn" id="closeModalBtn">
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="leadForm">
+
+            <input type="hidden" id="editId">
+
+
+            <div class="form-grid">
+
+                <div class="form-group full">
+
+                    <label>Business name *</label>
+
+                    <input
+                        id="business"
+                        type="text"
+                        placeholder="e.g. Smile Dental Clinic"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Contact person</label>
+
+                    <input
+                        id="contact"
+                        type="text"
+                        placeholder="e.g. Dr. Rahul"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Email</label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="hello@example.com"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Phone</label>
+
+                    <input
+                        id="phone"
+                        type="text"
+                        placeholder="+91 98765 43210"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Website</label>
+
+                    <input
+                        id="website"
+                        type="url"
+                        placeholder="https://example.com"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Location</label>
+
+                    <input
+                        id="location"
+                        type="text"
+                        placeholder="Kurukshetra, Haryana"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Lead source</label>
+
+                    <select id="source">
+
+                        <option>Google Maps</option>
+                        <option>Instagram</option>
+                        <option>Website</option>
+                        <option>Referral</option>
+                        <option>LinkedIn</option>
+                        <option>Other</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Potential value</label>
+
+                    <input
+                        id="value"
+                        type="number"
+                        min="0"
+                        placeholder="25000"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Priority</label>
+
+                    <select id="priority">
+
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Status</label>
+
+                    <select id="status">
+
+                        <option>New</option>
+                        <option>Contacted</option>
+                        <option>Interested</option>
+                        <option>Closed</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <label>Notes</label>
+
+                    <textarea
+                        id="notes"
+                        rows="3"
+                        placeholder="Add anything important about this lead..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    id="cancelBtn"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="primary-btn"
+                >
+                    <span id="submitText">Add Lead</span>
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div class="toast" id="toast">
+
+    <div class="toast-icon">✓</div>
+
+    <div>
+        <strong id="toastTitle">Success</strong>
+        <span id="toastMessage">Lead added successfully.</span>
+    </div>
+
+</div>
+
+
+<script src="script.js"></script>
 
 </body>
 </html>
