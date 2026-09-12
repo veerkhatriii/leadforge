@@ -1,8 +1,34 @@
+/* =====================================================
+   LEADFORGE V3
+   CRM + TABLE + KANBAN PIPELINE
+===================================================== */
+
+
+/* =========================
+   STORAGE
+========================= */
+
 let leads = JSON.parse(
     localStorage.getItem("leadforge_leads")
 ) || [];
 
+
 const $ = (id) => document.getElementById(id);
+
+
+function saveLeads() {
+
+    localStorage.setItem(
+        "leadforge_leads",
+        JSON.stringify(leads)
+    );
+
+}
+
+
+/* =========================
+   DOM
+========================= */
 
 const modal = $("modal");
 const leadForm = $("leadForm");
@@ -13,6 +39,12 @@ const priorityFilter = $("priorityFilter");
 
 const leadsTable = $("leadsTable");
 const emptyState = $("emptyState");
+
+const tableView = $("tableView");
+const pipelineView = $("pipelineView");
+
+const tableViewBtn = $("tableViewBtn");
+const pipelineViewBtn = $("pipelineViewBtn");
 
 const totalLeads = $("totalLeads");
 const newLeads = $("newLeads");
@@ -36,78 +68,216 @@ const toast = $("toast");
 const toastTitle = $("toastTitle");
 const toastMessage = $("toastMessage");
 
+
 let toastTimer;
+
+let currentView =
+    localStorage.getItem("leadforge_view") || "table";
 
 
 /* =========================
-   STORAGE
+   HELPERS
 ========================= */
 
-function saveLeads() {
+function escapeHTML(value) {
 
-    localStorage.setItem(
-        "leadforge_leads",
-        JSON.stringify(leads)
-    );
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+function escapeAttr(value) {
+
+    return escapeHTML(value);
+
+}
+
+
+function formatCurrency(value) {
+
+    const number = Number(value) || 0;
+
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 0
+        }
+    ).format(number);
+
+}
+
+
+function normalizeWebsite(url) {
+
+    if (!url) return "";
+
+    const value = String(url).trim();
+
+    if (
+        value.startsWith("http://") ||
+        value.startsWith("https://")
+    ) {
+        return value;
+    }
+
+    return `https://${value}`;
+
+}
+
+
+function getLeadStatus(lead) {
+
+    return lead.status || "New";
+
+}
+
+
+function getLeadPriority(lead) {
+
+    return lead.priority || "Medium";
+
+}
+
+
+function getLeadValue(lead) {
+
+    return Number(lead.value) || 0;
 
 }
 
 
 /* =========================
-   MODAL
+   FILTERED LEADS
 ========================= */
+
+function getFilteredLeads() {
+
+    const search =
+        searchInput.value
+            .toLowerCase()
+            .trim();
+
+    const status =
+        statusFilter.value;
+
+    const priority =
+        priorityFilter.value;
+
+
+    return leads.filter((lead) => {
+
+        const searchable = [
+
+            lead.business,
+            lead.contact,
+            lead.email,
+            lead.phone,
+            lead.location,
+            lead.source,
+            lead.website,
+            lead.notes
+
+        ]
+            .join(" ")
+            .toLowerCase();
+
+
+        const matchesSearch =
+            searchable.includes(search);
+
+
+        const matchesStatus =
+            status === "all" ||
+            getLeadStatus(lead) === status;
+
+
+        const matchesPriority =
+            priority === "all" ||
+            getLeadPriority(lead) === priority;
+
+
+        return (
+            matchesSearch &&
+            matchesStatus &&
+            matchesPriority
+        );
+
+    });
+
+}
+
+
+/* =====================================================
+   MODAL
+===================================================== */
 
 function openModal(lead = null) {
 
     modal.classList.add("show");
 
+    const editId = $("editId");
+
     if (lead) {
 
-        $("modalTitle").textContent = "Edit lead";
+        editId.value = lead.id;
 
-        $("submitText").textContent = "Save changes";
+        $("business").value =
+            lead.business || "";
 
-        $("editId").value = lead.id;
+        $("contact").value =
+            lead.contact || "";
 
-        $("business").value = lead.business || "";
+        $("email").value =
+            lead.email || "";
 
-        $("contact").value = lead.contact || "";
+        $("phone").value =
+            lead.phone || "";
 
-        $("email").value = lead.email || "";
+        $("website").value =
+            lead.website || "";
 
-        $("phone").value = lead.phone || "";
+        $("location").value =
+            lead.location || "";
 
-        $("website").value = lead.website || "";
+        $("source").value =
+            lead.source || "Google Maps";
 
-        $("location").value = lead.location || "";
+        $("value").value =
+            lead.value || "";
 
-        $("source").value = lead.source || "Other";
+        $("priority").value =
+            getLeadPriority(lead);
 
-        $("value").value = lead.value || "";
+        $("status").value =
+            getLeadStatus(lead);
 
-        $("priority").value = lead.priority || "Medium";
-
-        $("status").value = lead.status || "New";
-
-        $("notes").value = lead.notes || "";
+        $("notes").value =
+            lead.notes || "";
 
     } else {
 
-        $("modalTitle").textContent = "Add a new lead";
-
-        $("submitText").textContent = "Add Lead";
-
-        $("editId").value = "";
-
         leadForm.reset();
 
-        $("priority").value = "Medium";
+        editId.value = "";
 
-        $("status").value = "New";
+        $("source").value =
+            "Google Maps";
+
+        $("priority").value =
+            "Medium";
+
+        $("status").value =
+            "New";
 
     }
 
-    setTimeout(() => $("business").focus(), 50);
 }
 
 
@@ -115,175 +285,135 @@ function closeModal() {
 
     modal.classList.remove("show");
 
-    leadForm.reset();
-
-    $("editId").value = "";
-
 }
 
 
-/* Buttons */
-
-$("openModalBtn").addEventListener(
-    "click",
-    () => openModal()
-);
-
-$("sidebarAddBtn").addEventListener(
-    "click",
-    () => openModal()
-);
-
-$("emptyAddBtn").addEventListener(
-    "click",
-    () => openModal()
-);
-
-$("closeModalBtn").addEventListener(
-    "click",
-    closeModal
-);
-
-$("cancelBtn").addEventListener(
-    "click",
-    closeModal
-);
-
-
-modal.addEventListener("click", (event) => {
-
-    if (event.target === modal) {
-        closeModal();
-    }
-
-});
-
-
-/* Escape */
-
-document.addEventListener("keydown", (event) => {
-
-    if (event.key === "Escape") {
-        closeModal();
-    }
-
-});
-
-
 /* =========================
-   ADD / EDIT
+   ADD / EDIT LEAD
 ========================= */
 
-leadForm.addEventListener("submit", (event) => {
+leadForm.addEventListener(
+    "submit",
+    function (event) {
 
-    event.preventDefault();
-
-
-    const editId = $("editId").value;
-
-
-    const leadData = {
-
-        business: $("business").value.trim(),
-
-        contact: $("contact").value.trim(),
-
-        email: $("email").value.trim(),
-
-        phone: $("phone").value.trim(),
-
-        website: $("website").value.trim(),
-
-        location: $("location").value.trim(),
-
-        source: $("source").value,
-
-        value: Number($("value").value) || 0,
-
-        priority: $("priority").value,
-
-        status: $("status").value,
-
-        notes: $("notes").value.trim()
-
-    };
+        event.preventDefault();
 
 
-    if (!leadData.business) {
-
-        showToast(
-            "Missing information",
-            "Business name is required."
-        );
-
-        return;
-
-    }
+        const editId =
+            $("editId").value;
 
 
-    /* EDIT */
+        const leadData = {
 
-    if (editId) {
+            business:
+                $("business").value.trim(),
 
-        const index = leads.findIndex(
-            lead => String(lead.id) === String(editId)
-        );
+            contact:
+                $("contact").value.trim(),
+
+            email:
+                $("email").value.trim(),
+
+            phone:
+                $("phone").value.trim(),
+
+            website:
+                $("website").value.trim(),
+
+            location:
+                $("location").value.trim(),
+
+            source:
+                $("source").value,
+
+            value:
+                Number($("value").value) || 0,
+
+            priority:
+                $("priority").value,
+
+            status:
+                $("status").value,
+
+            notes:
+                $("notes").value.trim()
+
+        };
 
 
-        if (index !== -1) {
+        if (!leadData.business) {
 
-            leads[index] = {
-                ...leads[index],
-                ...leadData
+            showToast(
+                "Missing information",
+                "Please enter a business name."
+            );
+
+            return;
+
+        }
+
+
+        if (editId) {
+
+            const index =
+                leads.findIndex(
+                    (lead) =>
+                        String(lead.id) ===
+                        String(editId)
+                );
+
+
+            if (index !== -1) {
+
+                leads[index] = {
+
+                    ...leads[index],
+                    ...leadData
+
+                };
+
+            }
+
+
+            showToast(
+                "Lead updated",
+                `${leadData.business} was updated successfully.`
+            );
+
+        } else {
+
+            const newLead = {
+
+                id:
+                    Date.now(),
+
+                ...leadData,
+
+                date:
+                    new Date().toISOString()
+
             };
+
+
+            leads.unshift(newLead);
+
+
+            showToast(
+                "Lead added",
+                `${leadData.business} was added to your pipeline.`
+            );
 
         }
 
 
         saveLeads();
 
-        renderAll();
-
         closeModal();
 
-        showToast(
-            "Lead updated",
-            `${leadData.business} was updated successfully.`
-        );
+        renderAll();
 
-
-        return;
     }
-
-
-    /* NEW LEAD */
-
-    const newLead = {
-
-        id: Date.now(),
-
-        ...leadData,
-
-        date: new Date().toISOString()
-
-    };
-
-
-    leads.unshift(newLead);
-
-    saveLeads();
-
-    renderAll();
-
-    closeModal();
-
-
-    showToast(
-        "Lead added",
-        `${newLead.business} was added to your pipeline.`
-    );
-
-});
+);
 
 
 /* =========================
@@ -292,24 +422,32 @@ leadForm.addEventListener("submit", (event) => {
 
 function deleteLead(id) {
 
-    const lead = leads.find(
-        item => item.id === id
-    );
+    const lead =
+        leads.find(
+            (item) =>
+                String(item.id) ===
+                String(id)
+        );
+
 
     if (!lead) return;
 
 
-    const confirmed = confirm(
-        `Delete "${lead.business}"?`
-    );
+    const confirmed =
+        confirm(
+            `Delete "${lead.business}"?`
+        );
 
 
     if (!confirmed) return;
 
 
-    leads = leads.filter(
-        item => item.id !== id
-    );
+    leads =
+        leads.filter(
+            (item) =>
+                String(item.id) !==
+                String(id)
+        );
 
 
     saveLeads();
@@ -325,113 +463,102 @@ function deleteLead(id) {
 }
 
 
+window.deleteLead = deleteLead;
+
+
 /* =========================
    EDIT
 ========================= */
 
 function editLead(id) {
 
-    const lead = leads.find(
-        item => item.id === id
-    );
+    const lead =
+        leads.find(
+            (item) =>
+                String(item.id) ===
+                String(id)
+        );
+
 
     if (!lead) return;
+
 
     openModal(lead);
 
 }
 
 
-/* =========================
-   RENDER TABLE
-========================= */
+window.editLead = editLead;
+
+
+/* =====================================================
+   TABLE
+===================================================== */
 
 function renderLeads() {
 
-    const search = searchInput.value
-        .toLowerCase()
-        .trim();
-
-    const status = statusFilter.value;
-
-    const priority = priorityFilter.value;
+    const filtered =
+        getFilteredLeads();
 
 
-    const filtered = leads.filter((lead) => {
-
-        const searchable = [
-
-            lead.business,
-            lead.contact,
-            lead.email,
-            lead.phone,
-            lead.location,
-            lead.source
-
-        ]
-            .join(" ")
-            .toLowerCase();
-
-
-        const matchesSearch =
-            searchable.includes(search);
-
-
-        const matchesStatus =
-            status === "all" ||
-            lead.status === status;
-
-
-        const matchesPriority =
-            priority === "all" ||
-            lead.priority === priority;
-
-
-        return (
-            matchesSearch &&
-            matchesStatus &&
-            matchesPriority
-        );
-
-    });
+    visibleLeadCount.textContent =
+        `${filtered.length} ${
+            filtered.length === 1
+                ? "lead"
+                : "leads"
+        }`;
 
 
     leadsTable.innerHTML = "";
 
 
-    visibleLeadCount.textContent =
-        `${filtered.length} ${filtered.length === 1 ? "lead" : "leads"}`;
-
-
     if (filtered.length === 0) {
 
-        emptyState.style.display = "block";
+        emptyState.style.display =
+            "block";
 
         return;
 
     }
 
 
-    emptyState.style.display = "none";
+    emptyState.style.display =
+        "none";
 
 
     filtered.forEach((lead) => {
 
-        const row = document.createElement("tr");
+        const row =
+            document.createElement("tr");
 
 
-        const contactHTML = lead.email
+        const contactHTML =
+            lead.email
 
-            ? `
-                <a href="mailto:${escapeAttr(lead.email)}">
-                    ${escapeHTML(lead.email)}
-                </a>
-            `
+                ? `
+                    <a href="mailto:${escapeAttr(
+                        lead.email
+                    )}">
+                        ${escapeHTML(
+                            lead.email
+                        )}
+                    </a>
+                `
 
-            : `<span>${escapeHTML(lead.contact || "No contact")}</span>`;
+                : `
+                    <span>
+                        ${escapeHTML(
+                            lead.contact ||
+                            "No contact"
+                        )}
+                    </span>
+                `;
 
 
-        const value = formatCurrency(lead.value);
+        const website =
+            normalizeWebsite(
+                lead.website
+            );
 
 
         row.innerHTML = `
@@ -441,12 +568,20 @@ function renderLeads() {
                 <div class="business-cell">
 
                     <strong>
-                        ${escapeHTML(lead.business)}
+                        ${escapeHTML(
+                            lead.business
+                        )}
                     </strong>
 
                     ${
                         lead.location
-                            ? `<small>${escapeHTML(lead.location)}</small>`
+                            ? `
+                                <small>
+                                    ${escapeHTML(
+                                        lead.location
+                                    )}
+                                </small>
+                              `
                             : ""
                     }
 
@@ -463,7 +598,13 @@ function renderLeads() {
 
                     ${
                         lead.phone
-                            ? `<small>${escapeHTML(lead.phone)}</small>`
+                            ? `
+                                <small>
+                                    ${escapeHTML(
+                                        lead.phone
+                                    )}
+                                </small>
+                              `
                             : ""
                     }
 
@@ -475,7 +616,12 @@ function renderLeads() {
             <td>
 
                 <span class="source-tag">
-                    ${escapeHTML(lead.source || "Other")}
+
+                    ${escapeHTML(
+                        lead.source ||
+                        "Other"
+                    )}
+
                 </span>
 
             </td>
@@ -484,7 +630,11 @@ function renderLeads() {
             <td>
 
                 <span class="value-cell">
-                    ${value}
+
+                    ${formatCurrency(
+                        getLeadValue(lead)
+                    )}
+
                 </span>
 
             </td>
@@ -492,8 +642,14 @@ function renderLeads() {
 
             <td>
 
-                <span class="priority ${escapeAttr(lead.priority || "Medium")}">
-                    ${escapeHTML(lead.priority || "Medium")}
+                <span class="priority ${escapeAttr(
+                    getLeadPriority(lead)
+                )}">
+
+                    ${escapeHTML(
+                        getLeadPriority(lead)
+                    )}
+
                 </span>
 
             </td>
@@ -501,8 +657,14 @@ function renderLeads() {
 
             <td>
 
-                <span class="status ${escapeAttr(lead.status || "New")}">
-                    ${escapeHTML(lead.status || "New")}
+                <span class="status ${escapeAttr(
+                    getLeadStatus(lead)
+                )}">
+
+                    ${escapeHTML(
+                        getLeadStatus(lead)
+                    )}
+
                 </span>
 
             </td>
@@ -513,18 +675,22 @@ function renderLeads() {
                 <div class="action-buttons">
 
                     ${
-                        lead.website
+                        website
+
                             ? `
                                 <a
                                     class="action-btn"
-                                    href="${escapeAttr(lead.website)}"
+                                    href="${escapeAttr(
+                                        website
+                                    )}"
                                     target="_blank"
-                                    rel="noopener"
+                                    rel="noopener noreferrer"
                                     title="Open website"
                                 >
                                     ↗
                                 </a>
-                            `
+                              `
+
                             : ""
                     }
 
@@ -560,141 +726,887 @@ function renderLeads() {
 }
 
 
+/* =====================================================
+   KANBAN
+===================================================== */
+
+const PIPELINE_STATUSES = [
+    "New",
+    "Contacted",
+    "Interested",
+    "Closed"
+];
+
+
+function renderKanban() {
+
+    const filtered =
+        getFilteredLeads();
+
+
+    PIPELINE_STATUSES.forEach(
+        (status) => {
+
+            const column =
+                document.querySelector(
+                    `.kanban-column[data-status="${status}"]`
+                );
+
+
+            if (!column) return;
+
+
+            const dropzone =
+                column.querySelector(
+                    ".kanban-dropzone"
+                );
+
+
+            const countElement =
+                column.querySelector(
+                    `[data-count="${status}"]`
+                );
+
+
+            const valueElement =
+                column.querySelector(
+                    `[data-value="${status}"]`
+                );
+
+
+            const columnLeads =
+                filtered.filter(
+                    (lead) =>
+                        getLeadStatus(lead) ===
+                        status
+                );
+
+
+            const totalValue =
+                columnLeads.reduce(
+                    (sum, lead) =>
+                        sum +
+                        getLeadValue(lead),
+                    0
+                );
+
+
+            countElement.textContent =
+                columnLeads.length;
+
+
+            valueElement.textContent =
+                formatCurrency(totalValue);
+
+
+            dropzone.innerHTML = "";
+
+
+            if (columnLeads.length === 0) {
+
+                dropzone.innerHTML = `
+
+                    <div class="kanban-empty">
+
+                        ${
+                            statusFilter.value !== "all" ||
+                            searchInput.value.trim() ||
+                            priorityFilter.value !== "all"
+
+                                ? "No matching leads"
+
+                                : "Drop leads here"
+                        }
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
+            columnLeads.forEach(
+                (lead) => {
+
+                    dropzone.appendChild(
+                        createLeadCard(lead)
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
 /* =========================
-   STATS
+   CREATE CARD
 ========================= */
 
-function updateStats() {
+function createLeadCard(lead) {
 
-    const total = leads.length;
-
-    const fresh = leads.filter(
-        lead => lead.status === "New"
-    ).length;
-
-    const interested = leads.filter(
-        lead => lead.status === "Interested"
-    ).length;
-
-    const closed = leads.filter(
-        lead => lead.status === "Closed"
-    ).length;
+    const card =
+        document.createElement("div");
 
 
-    const totalValue = leads.reduce(
-        (sum, lead) => sum + Number(lead.value || 0),
-        0
+    card.className =
+        "lead-card";
+
+
+    card.draggable = true;
+
+
+    card.dataset.id =
+        lead.id;
+
+
+    const website =
+        normalizeWebsite(
+            lead.website
+        );
+
+
+    card.innerHTML = `
+
+        <div class="lead-card-top">
+
+            <div class="lead-card-business">
+
+                <strong title="${escapeAttr(
+                    lead.business
+                )}">
+
+                    ${escapeHTML(
+                        lead.business ||
+                        "Untitled Lead"
+                    )}
+
+                </strong>
+
+
+                ${
+                    lead.location
+
+                        ? `
+                            <span class="lead-card-location">
+
+                                ${escapeHTML(
+                                    lead.location
+                                )}
+
+                            </span>
+                          `
+
+                        : ""
+                }
+
+            </div>
+
+
+            <span
+                class="drag-handle"
+                title="Drag lead"
+            >
+                ⠿
+            </span>
+
+        </div>
+
+
+        <div class="lead-card-value">
+
+            ${formatCurrency(
+                getLeadValue(lead)
+            )}
+
+        </div>
+
+
+        <div class="lead-card-meta">
+
+            <span class="lead-card-tag">
+
+                ${escapeHTML(
+                    lead.source ||
+                    "Other"
+                )}
+
+            </span>
+
+
+            <span
+                class="lead-card-priority ${escapeAttr(
+                    getLeadPriority(lead)
+                )}"
+            >
+
+                ${escapeHTML(
+                    getLeadPriority(lead)
+                )}
+
+            </span>
+
+        </div>
+
+
+        ${
+            lead.contact ||
+            lead.email ||
+            lead.phone
+
+                ? `
+
+                    <div class="lead-card-contact">
+
+                        ${
+                            lead.contact
+                                ? `
+                                    <span>
+                                        ${escapeHTML(
+                                            lead.contact
+                                        )}
+                                    </span>
+                                  `
+                                : ""
+                        }
+
+
+                        ${
+                            lead.email
+                                ? `
+                                    <a href="mailto:${escapeAttr(
+                                        lead.email
+                                    )}">
+                                        ${escapeHTML(
+                                            lead.email
+                                        )}
+                                    </a>
+                                  `
+                                : ""
+                        }
+
+
+                        ${
+                            lead.phone
+                                ? `
+                                    <span>
+                                        ${escapeHTML(
+                                            lead.phone
+                                        )}
+                                    </span>
+                                  `
+                                : ""
+                        }
+
+                    </div>
+
+                  `
+
+                : ""
+        }
+
+
+        <div class="lead-card-actions">
+
+            ${
+                website
+
+                    ? `
+                        <a
+                            class="card-action"
+                            href="${escapeAttr(
+                                website
+                            )}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open website"
+                        >
+                            ↗
+                        </a>
+                      `
+
+                    : ""
+            }
+
+
+            <button
+                class="card-action"
+                type="button"
+                data-action="edit"
+                title="Edit lead"
+            >
+                ✎
+            </button>
+
+
+            <button
+                class="card-action delete"
+                type="button"
+                data-action="delete"
+                title="Delete lead"
+            >
+                ×
+            </button>
+
+        </div>
+
+    `;
+
+
+    /* CARD CLICK */
+
+    card.addEventListener(
+        "click",
+        (event) => {
+
+            if (
+                event.target.closest(
+                    "button, a"
+                )
+            ) {
+                return;
+            }
+
+
+            editLead(lead.id);
+
+        }
     );
 
 
-    const interestedVal = leads
-        .filter(lead => lead.status === "Interested")
-        .reduce(
-            (sum, lead) => sum + Number(lead.value || 0),
+    /* EDIT */
+
+    const editButton =
+        card.querySelector(
+            '[data-action="edit"]'
+        );
+
+
+    editButton.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            editLead(lead.id);
+
+        }
+    );
+
+
+    /* DELETE */
+
+    const deleteButton =
+        card.querySelector(
+            '[data-action="delete"]'
+        );
+
+
+    deleteButton.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            deleteLead(lead.id);
+
+        }
+    );
+
+
+    /* DRAG START */
+
+    card.addEventListener(
+        "dragstart",
+        (event) => {
+
+            event.dataTransfer.effectAllowed =
+                "move";
+
+            event.dataTransfer.setData(
+                "text/plain",
+                String(lead.id)
+            );
+
+
+            card.classList.add(
+                "dragging"
+            );
+
+
+            document
+                .querySelectorAll(
+                    ".kanban-dropzone"
+                )
+                .forEach(
+                    (zone) =>
+                        zone.classList.add(
+                            "drag-active"
+                        )
+                );
+
+        }
+    );
+
+
+    /* DRAG END */
+
+    card.addEventListener(
+        "dragend",
+        () => {
+
+            card.classList.remove(
+                "dragging"
+            );
+
+
+            document
+                .querySelectorAll(
+                    ".kanban-dropzone"
+                )
+                .forEach(
+                    (zone) =>
+                        zone.classList.remove(
+                            "drag-active"
+                        )
+                );
+
+
+            document
+                .querySelectorAll(
+                    ".kanban-column"
+                )
+                .forEach(
+                    (column) =>
+                        column.classList.remove(
+                            "drag-over"
+                        )
+                );
+
+        }
+    );
+
+
+    return card;
+
+}
+
+
+/* =====================================================
+   DRAG & DROP
+===================================================== */
+
+function setupKanbanDragDrop() {
+
+    const columns =
+        document.querySelectorAll(
+            ".kanban-column"
+        );
+
+
+    columns.forEach(
+        (column) => {
+
+            const dropzone =
+                column.querySelector(
+                    ".kanban-dropzone"
+                );
+
+
+            /* DRAG OVER */
+
+            dropzone.addEventListener(
+                "dragover",
+                (event) => {
+
+                    event.preventDefault();
+
+                    event.dataTransfer.dropEffect =
+                        "move";
+
+
+                    column.classList.add(
+                        "drag-over"
+                    );
+
+                }
+            );
+
+
+            /* DRAG LEAVE */
+
+            dropzone.addEventListener(
+                "dragleave",
+                (event) => {
+
+                    if (
+                        !dropzone.contains(
+                            event.relatedTarget
+                        )
+                    ) {
+
+                        column.classList.remove(
+                            "drag-over"
+                        );
+
+                    }
+
+                }
+            );
+
+
+            /* DROP */
+
+            dropzone.addEventListener(
+                "drop",
+                (event) => {
+
+                    event.preventDefault();
+
+
+                    column.classList.remove(
+                        "drag-over"
+                    );
+
+
+                    const id =
+                        event.dataTransfer.getData(
+                            "text/plain"
+                        );
+
+
+                    const newStatus =
+                        column.dataset.status;
+
+
+                    if (!id || !newStatus) {
+                        return;
+                    }
+
+
+                    changeLeadStatus(
+                        id,
+                        newStatus
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================
+   CHANGE STATUS
+========================= */
+
+function changeLeadStatus(
+    id,
+    newStatus
+) {
+
+    const lead =
+        leads.find(
+            (item) =>
+                String(item.id) ===
+                String(id)
+        );
+
+
+    if (!lead) return;
+
+
+    const oldStatus =
+        getLeadStatus(lead);
+
+
+    if (oldStatus === newStatus) {
+        return;
+    }
+
+
+    lead.status =
+        newStatus;
+
+
+    saveLeads();
+
+    renderAll();
+
+
+    showToast(
+        "Pipeline updated",
+        `${lead.business} moved from ${oldStatus} to ${newStatus}.`
+    );
+
+}
+
+
+/* =====================================================
+   STATS
+===================================================== */
+
+function updateStats() {
+
+    const total =
+        leads.length;
+
+
+    const newCount =
+        leads.filter(
+            (lead) =>
+                getLeadStatus(lead) ===
+                "New"
+        ).length;
+
+
+    const interestedCount =
+        leads.filter(
+            (lead) =>
+                getLeadStatus(lead) ===
+                "Interested"
+        ).length;
+
+
+    const closedCount =
+        leads.filter(
+            (lead) =>
+                getLeadStatus(lead) ===
+                "Closed"
+        ).length;
+
+
+    const pipeline =
+        leads.reduce(
+            (sum, lead) =>
+                sum +
+                getLeadValue(lead),
             0
         );
 
 
-    const closedVal = leads
-        .filter(lead => lead.status === "Closed")
-        .reduce(
-            (sum, lead) => sum + Number(lead.value || 0),
-            0
-        );
+    const interested =
+        leads
+            .filter(
+                (lead) =>
+                    getLeadStatus(lead) ===
+                    "Interested"
+            )
+            .reduce(
+                (sum, lead) =>
+                    sum +
+                    getLeadValue(lead),
+                0
+            );
 
 
-    totalLeads.textContent = total;
-
-    newLeads.textContent = fresh;
-
-    interestedLeads.textContent = interested;
-
-    closedLeads.textContent = closed;
-
-
-    pipelineValue.textContent =
-        formatCurrency(totalValue);
-
-    interestedValue.textContent =
-        formatCurrency(interestedVal);
-
-    closedValue.textContent =
-        formatCurrency(closedVal);
-
-
-    conversionTotal.textContent = total;
-
-    conversionClosed.textContent = closed;
+    const closed =
+        leads
+            .filter(
+                (lead) =>
+                    getLeadStatus(lead) ===
+                    "Closed"
+            )
+            .reduce(
+                (sum, lead) =>
+                    sum +
+                    getLeadValue(lead),
+                0
+            );
 
 
     const rate =
-        total === 0
-            ? 0
-            : (closed / total) * 100;
+        total > 0
+            ? (
+                closed /
+                total *
+                100
+            )
+            : 0;
+
+
+    totalLeads.textContent =
+        total;
+
+
+    newLeads.textContent =
+        newCount;
+
+
+    interestedLeads.textContent =
+        interestedCount;
+
+
+    closedLeads.textContent =
+        closedCount;
+
+
+    pipelineValue.textContent =
+        formatCurrency(
+            pipeline
+        );
+
+
+    interestedValue.textContent =
+        formatCurrency(
+            interested
+        );
+
+
+    closedValue.textContent =
+        formatCurrency(
+            closed
+        );
 
 
     conversionRate.textContent =
         `${rate.toFixed(1)}%`;
 
 
-    const circleDegrees =
-        Math.min(rate, 100) * 3.6;
+    conversionClosed.textContent =
+        closed;
 
 
-    document.querySelector(
-        ".conversion-circle"
-    ).style.background =
-        `conic-gradient(
-            var(--accent) ${circleDegrees}deg,
-            #1c2028 ${circleDegrees}deg
-        )`;
+    conversionTotal.textContent =
+        total;
 
 
     const progress =
-        totalValue === 0
-            ? 0
-            : Math.min(
-                (closedVal / totalValue) * 100,
+        pipeline > 0
+            ? (
+                closed /
+                pipeline *
                 100
-            );
+            )
+            : 0;
 
 
-    pipelineProgress.style.width =
-        `${progress}%`;
+    if (pipelineProgress) {
+
+        pipelineProgress.style.width =
+            `${Math.min(
+                progress,
+                100
+            )}%`;
+
+    }
 
 
-    sidebarLeadCount.textContent = total;
+    if (sidebarLeadCount) {
+
+        sidebarLeadCount.textContent =
+            total;
+
+    }
 
 }
 
 
-/* =========================
-   SEARCH
-========================= */
+/* =====================================================
+   SEARCH + FILTER
+===================================================== */
 
 searchInput.addEventListener(
     "input",
-    renderLeads
+    renderAll
 );
+
 
 statusFilter.addEventListener(
     "change",
-    renderLeads
+    renderAll
 );
+
 
 priorityFilter.addEventListener(
     "change",
-    renderLeads
+    renderAll
 );
 
 
-/* =========================
+/* =====================================================
+   VIEW SWITCHER
+===================================================== */
+
+function setView(view) {
+
+    currentView =
+        view;
+
+
+    localStorage.setItem(
+        "leadforge_view",
+        view
+    );
+
+
+    if (view === "pipeline") {
+
+        tableView.style.display =
+            "none";
+
+        pipelineView.style.display =
+            "block";
+
+
+        tableViewBtn.classList.remove(
+            "active"
+        );
+
+        pipelineViewBtn.classList.add(
+            "active"
+        );
+
+    } else {
+
+        tableView.style.display =
+            "block";
+
+        pipelineView.style.display =
+            "none";
+
+
+        tableViewBtn.classList.add(
+            "active"
+        );
+
+        pipelineViewBtn.classList.remove(
+            "active"
+        );
+
+    }
+
+
+    renderAll();
+
+}
+
+
+tableViewBtn.addEventListener(
+    "click",
+    () => setView("table")
+);
+
+
+pipelineViewBtn.addEventListener(
+    "click",
+    () => setView("pipeline")
+);
+
+
+/* =====================================================
    EXPORT CSV
-========================= */
+===================================================== */
 
 function exportCSV() {
 
-    if (leads.length === 0) {
+    if (!leads.length) {
 
         showToast(
             "Nothing to export",
@@ -724,139 +1636,325 @@ function exportCSV() {
     ];
 
 
-    const rows = leads.map(lead => [
+    const rows =
+        leads.map(
+            (lead) => [
 
-        lead.business,
-        lead.contact,
-        lead.email,
-        lead.phone,
-        lead.website,
-        lead.location,
-        lead.source,
-        lead.value,
-        lead.priority,
-        lead.status,
-        lead.notes,
-        formatDate(lead.date)
+                lead.business || "",
+                lead.contact || "",
+                lead.email || "",
+                lead.phone || "",
+                lead.website || "",
+                lead.location || "",
+                lead.source || "",
+                lead.value || 0,
+                getLeadPriority(lead),
+                getLeadStatus(lead),
+                lead.notes || "",
+                lead.date || ""
 
-    ]);
+            ]
+        );
 
 
     const csv = [
 
         headers,
+
         ...rows
 
     ]
-        .map(row =>
-            row
-                .map(value =>
-                    `"${String(value ?? "")
-                        .replace(/"/g, '""')}"`
-                )
-                .join(",")
+        .map(
+            (row) =>
+                row
+                    .map(
+                        (value) =>
+                            `"${String(value)
+                                .replace(
+                                    /"/g,
+                                    '""'
+                                )}"`
+                    )
+                    .join(",")
         )
         .join("\n");
 
 
-    const blob = new Blob(
-        [csv],
-        {
-            type: "text/csv;charset=utf-8;"
-        }
-    );
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
 
 
     const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+            blob
+        );
 
 
     const link =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
 
-    link.href = url;
+    link.href =
+        url;
+
 
     link.download =
-        `leadforge-${new Date()
+        `leadforge-leads-${new Date()
             .toISOString()
             .slice(0, 10)}.csv`;
 
 
-    document.body.appendChild(link);
+    document.body.appendChild(
+        link
+    );
+
 
     link.click();
 
+
     link.remove();
 
-    URL.revokeObjectURL(url);
+
+    URL.revokeObjectURL(
+        url
+    );
 
 
     showToast(
-        "Export complete",
-        `${leads.length} leads exported to CSV.`
+        "CSV exported",
+        `${leads.length} leads exported successfully.`
     );
 
 }
 
 
-$("sidebarExportBtn").addEventListener(
-    "click",
-    exportCSV
-);
+window.exportCSV = exportCSV;
 
 
-/* =========================
+/* =====================================================
    THEME
-========================= */
+===================================================== */
 
-const savedTheme =
-    localStorage.getItem("leadforge_theme");
-
-
-if (savedTheme === "light") {
-
-    document.body.classList.add("light");
-
-    $("themeBtn").textContent = "☀";
-
-}
+const themeToggle =
+    $("themeToggle");
 
 
-$("themeBtn").addEventListener("click", () => {
+function applyTheme(theme) {
 
-    document.body.classList.toggle("light");
-
-
-    const isLight =
-        document.body.classList.contains("light");
+    document.documentElement.dataset.theme =
+        theme;
 
 
     localStorage.setItem(
         "leadforge_theme",
-        isLight ? "light" : "dark"
+        theme
+    );
+
+}
+
+
+const savedTheme =
+    localStorage.getItem(
+        "leadforge_theme"
     );
 
 
-    $("themeBtn").textContent =
-        isLight ? "☀" : "☾";
+if (savedTheme) {
 
-});
+    applyTheme(
+        savedTheme
+    );
+
+}
 
 
-/* =========================
-   KEYBOARD SHORTCUT
-========================= */
+if (themeToggle) {
+
+    themeToggle.addEventListener(
+        "click",
+        () => {
+
+            const current =
+                document.documentElement.dataset.theme ||
+                "dark";
+
+
+            const next =
+                current === "dark"
+                    ? "light"
+                    : "dark";
+
+
+            applyTheme(
+                next
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+function showToast(
+    title,
+    message
+) {
+
+    if (!toast) return;
+
+
+    toastTitle.textContent =
+        title;
+
+
+    toastMessage.textContent =
+        message;
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3200
+        );
+
+}
+
+
+/* =====================================================
+   MODAL BUTTONS
+===================================================== */
+
+const addLeadBtn =
+    $("addLeadBtn");
+
+
+const topAddLeadBtn =
+    $("topAddLeadBtn");
+
+
+const emptyAddBtn =
+    $("emptyAddBtn");
+
+
+if (addLeadBtn) {
+
+    addLeadBtn.addEventListener(
+        "click",
+        () => openModal()
+    );
+
+}
+
+
+if (topAddLeadBtn) {
+
+    topAddLeadBtn.addEventListener(
+        "click",
+        () => openModal()
+    );
+
+}
+
+
+if (emptyAddBtn) {
+
+    emptyAddBtn.addEventListener(
+        "click",
+        () => openModal()
+    );
+
+}
+
+
+/* CLOSE MODAL */
+
+const modalClose =
+    $("modalClose");
+
+
+if (modalClose) {
+
+    modalClose.addEventListener(
+        "click",
+        closeModal
+    );
+
+}
+
+
+if (modal) {
+
+    modal.addEventListener(
+        "click",
+        (event) => {
+
+            if (
+                event.target ===
+                modal
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   KEYBOARD SHORTCUTS
+===================================================== */
 
 document.addEventListener(
     "keydown",
     (event) => {
 
+        const target =
+            event.target;
+
+
+        const isTyping =
+            target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.tagName === "SELECT";
+
+
+        /* N = New lead */
+
         if (
-            event.key.toLowerCase() === "n" &&
-            !["INPUT", "TEXTAREA", "SELECT"].includes(
-                document.activeElement.tagName
-            )
+            event.key.toLowerCase() ===
+                "n" &&
+            !isTyping
         ) {
 
             event.preventDefault();
@@ -866,9 +1964,15 @@ document.addEventListener(
         }
 
 
+        /* CTRL/CMD + K = Search */
+
         if (
-            (event.ctrlKey || event.metaKey) &&
-            event.key.toLowerCase() === "k"
+            (
+                event.ctrlKey ||
+                event.metaKey
+            ) &&
+            event.key.toLowerCase() ===
+                "k"
         ) {
 
             event.preventDefault();
@@ -877,120 +1981,53 @@ document.addEventListener(
 
         }
 
+
+        /* ESC = Close modal */
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+
+            closeModal();
+
+        }
+
     }
 );
 
 
-/* =========================
+/* =====================================================
    DATE
-========================= */
+===================================================== */
 
-$("currentDate").textContent =
-    new Intl.DateTimeFormat(
-        "en-IN",
-        {
-            day: "numeric",
-            month: "short",
-            year: "numeric"
-        }
-    ).format(new Date());
+const currentDate =
+    $("currentDate");
 
 
-/* =========================
-   TOAST
-========================= */
+if (currentDate) {
 
-function showToast(title, message) {
-
-    toastTitle.textContent = title;
-
-    toastMessage.textContent = message;
-
-    toast.classList.add("show");
-
-
-    clearTimeout(toastTimer);
-
-
-    toastTimer = setTimeout(() => {
-
-        toast.classList.remove("show");
-
-    }, 3000);
+    currentDate.textContent =
+        new Date().toLocaleDateString(
+            "en-IN",
+            {
+                day: "numeric",
+                month: "short",
+                year: "numeric"
+            }
+        );
 
 }
 
 
-/* =========================
-   HELPERS
-========================= */
-
-function formatCurrency(number) {
-
-    return new Intl.NumberFormat(
-        "en-IN",
-        {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 0
-        }
-    ).format(number || 0);
-
-}
-
-
-function formatDate(date) {
-
-    if (!date) return "—";
-
-
-    return new Intl.DateTimeFormat(
-        "en-IN",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        }
-    ).format(new Date(date));
-
-}
-
-
-function escapeHTML(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-}
-
-
-function escapeAttr(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
-
-}
-
-
-/* =========================
+/* =====================================================
    INITIALIZE
-========================= */
+===================================================== */
 
-function renderAll() {
+setupKanbanDragDrop();
 
-    renderLeads();
-
-    updateStats();
-
-}
-
+setView(
+    currentView
+);
 
 renderAll();
