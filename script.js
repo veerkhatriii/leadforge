@@ -1,108 +1,47 @@
-let leads = JSON.parse(localStorage.getItem("leadforge_leads")) || [];
+let leads = JSON.parse(
+    localStorage.getItem("leadforge_leads")
+) || [];
 
-const modal = document.getElementById("modal");
-const leadForm = document.getElementById("leadForm");
+const $ = (id) => document.getElementById(id);
 
-const openModalBtn = document.getElementById("openModalBtn");
-const emptyAddBtn = document.getElementById("emptyAddBtn");
+const modal = $("modal");
+const leadForm = $("leadForm");
 
-const closeModalBtn = document.getElementById("closeModalBtn");
-const cancelBtn = document.getElementById("cancelBtn");
+const searchInput = $("searchInput");
+const statusFilter = $("statusFilter");
+const priorityFilter = $("priorityFilter");
 
-const searchInput = document.getElementById("searchInput");
-const statusFilter = document.getElementById("statusFilter");
+const leadsTable = $("leadsTable");
+const emptyState = $("emptyState");
 
-const leadsTable = document.getElementById("leadsTable");
-const emptyState = document.getElementById("emptyState");
+const totalLeads = $("totalLeads");
+const newLeads = $("newLeads");
+const interestedLeads = $("interestedLeads");
+const closedLeads = $("closedLeads");
 
-const totalLeads = document.getElementById("totalLeads");
-const newLeads = document.getElementById("newLeads");
-const interestedLeads = document.getElementById("interestedLeads");
-const closedLeads = document.getElementById("closedLeads");
+const pipelineValue = $("pipelineValue");
+const interestedValue = $("interestedValue");
+const closedValue = $("closedValue");
 
-const exportBtn = document.getElementById("exportBtn");
+const conversionRate = $("conversionRate");
+const conversionClosed = $("conversionClosed");
+const conversionTotal = $("conversionTotal");
 
+const pipelineProgress = $("pipelineProgress");
 
-/* Open modal */
+const sidebarLeadCount = $("sidebarLeadCount");
+const visibleLeadCount = $("visibleLeadCount");
 
-function openModal() {
-    modal.classList.add("show");
+const toast = $("toast");
+const toastTitle = $("toastTitle");
+const toastMessage = $("toastMessage");
 
-    document.getElementById("business").focus();
-}
-
-
-/* Close modal */
-
-function closeModal() {
-    modal.classList.remove("show");
-    leadForm.reset();
-}
-
-
-openModalBtn.addEventListener("click", openModal);
-
-emptyAddBtn.addEventListener("click", openModal);
-
-closeModalBtn.addEventListener("click", closeModal);
-
-cancelBtn.addEventListener("click", closeModal);
+let toastTimer;
 
 
-/* Close when clicking outside */
-
-modal.addEventListener("click", function (event) {
-
-    if (event.target === modal) {
-        closeModal();
-    }
-
-});
-
-
-/* Add lead */
-
-leadForm.addEventListener("submit", function (event) {
-
-    event.preventDefault();
-
-    const lead = {
-
-        id: Date.now(),
-
-        business: document.getElementById("business").value.trim(),
-
-        contact: document.getElementById("contact").value.trim(),
-
-        email: document.getElementById("email").value.trim(),
-
-        phone: document.getElementById("phone").value.trim(),
-
-        website: document.getElementById("website").value.trim(),
-
-        location: document.getElementById("location").value.trim(),
-
-        status: document.getElementById("status").value,
-
-        date: new Date().toLocaleDateString()
-
-    };
-
-
-    leads.unshift(lead);
-
-    saveLeads();
-
-    renderLeads();
-
-    updateStats();
-
-    closeModal();
-
-});
-
-
-/* Save */
+/* =========================
+   STORAGE
+========================= */
 
 function saveLeads() {
 
@@ -114,32 +53,298 @@ function saveLeads() {
 }
 
 
-/* Delete */
+/* =========================
+   MODAL
+========================= */
 
-function deleteLead(id) {
+function openModal(lead = null) {
 
-    const confirmed = confirm(
-        "Are you sure you want to delete this lead?"
-    );
+    modal.classList.add("show");
 
-    if (!confirmed) return;
+    if (lead) {
 
-    leads = leads.filter(function (lead) {
+        $("modalTitle").textContent = "Edit lead";
 
-        return lead.id !== id;
+        $("submitText").textContent = "Save changes";
 
-    });
+        $("editId").value = lead.id;
 
-    saveLeads();
+        $("business").value = lead.business || "";
 
-    renderLeads();
+        $("contact").value = lead.contact || "";
 
-    updateStats();
+        $("email").value = lead.email || "";
+
+        $("phone").value = lead.phone || "";
+
+        $("website").value = lead.website || "";
+
+        $("location").value = lead.location || "";
+
+        $("source").value = lead.source || "Other";
+
+        $("value").value = lead.value || "";
+
+        $("priority").value = lead.priority || "Medium";
+
+        $("status").value = lead.status || "New";
+
+        $("notes").value = lead.notes || "";
+
+    } else {
+
+        $("modalTitle").textContent = "Add a new lead";
+
+        $("submitText").textContent = "Add Lead";
+
+        $("editId").value = "";
+
+        leadForm.reset();
+
+        $("priority").value = "Medium";
+
+        $("status").value = "New";
+
+    }
+
+    setTimeout(() => $("business").focus(), 50);
+}
+
+
+function closeModal() {
+
+    modal.classList.remove("show");
+
+    leadForm.reset();
+
+    $("editId").value = "";
 
 }
 
 
-/* Render */
+/* Buttons */
+
+$("openModalBtn").addEventListener(
+    "click",
+    () => openModal()
+);
+
+$("sidebarAddBtn").addEventListener(
+    "click",
+    () => openModal()
+);
+
+$("emptyAddBtn").addEventListener(
+    "click",
+    () => openModal()
+);
+
+$("closeModalBtn").addEventListener(
+    "click",
+    closeModal
+);
+
+$("cancelBtn").addEventListener(
+    "click",
+    closeModal
+);
+
+
+modal.addEventListener("click", (event) => {
+
+    if (event.target === modal) {
+        closeModal();
+    }
+
+});
+
+
+/* Escape */
+
+document.addEventListener("keydown", (event) => {
+
+    if (event.key === "Escape") {
+        closeModal();
+    }
+
+});
+
+
+/* =========================
+   ADD / EDIT
+========================= */
+
+leadForm.addEventListener("submit", (event) => {
+
+    event.preventDefault();
+
+
+    const editId = $("editId").value;
+
+
+    const leadData = {
+
+        business: $("business").value.trim(),
+
+        contact: $("contact").value.trim(),
+
+        email: $("email").value.trim(),
+
+        phone: $("phone").value.trim(),
+
+        website: $("website").value.trim(),
+
+        location: $("location").value.trim(),
+
+        source: $("source").value,
+
+        value: Number($("value").value) || 0,
+
+        priority: $("priority").value,
+
+        status: $("status").value,
+
+        notes: $("notes").value.trim()
+
+    };
+
+
+    if (!leadData.business) {
+
+        showToast(
+            "Missing information",
+            "Business name is required."
+        );
+
+        return;
+
+    }
+
+
+    /* EDIT */
+
+    if (editId) {
+
+        const index = leads.findIndex(
+            lead => String(lead.id) === String(editId)
+        );
+
+
+        if (index !== -1) {
+
+            leads[index] = {
+                ...leads[index],
+                ...leadData
+            };
+
+        }
+
+
+        saveLeads();
+
+        renderAll();
+
+        closeModal();
+
+        showToast(
+            "Lead updated",
+            `${leadData.business} was updated successfully.`
+        );
+
+
+        return;
+    }
+
+
+    /* NEW LEAD */
+
+    const newLead = {
+
+        id: Date.now(),
+
+        ...leadData,
+
+        date: new Date().toISOString()
+
+    };
+
+
+    leads.unshift(newLead);
+
+    saveLeads();
+
+    renderAll();
+
+    closeModal();
+
+
+    showToast(
+        "Lead added",
+        `${newLead.business} was added to your pipeline.`
+    );
+
+});
+
+
+/* =========================
+   DELETE
+========================= */
+
+function deleteLead(id) {
+
+    const lead = leads.find(
+        item => item.id === id
+    );
+
+    if (!lead) return;
+
+
+    const confirmed = confirm(
+        `Delete "${lead.business}"?`
+    );
+
+
+    if (!confirmed) return;
+
+
+    leads = leads.filter(
+        item => item.id !== id
+    );
+
+
+    saveLeads();
+
+    renderAll();
+
+
+    showToast(
+        "Lead deleted",
+        `${lead.business} was removed.`
+    );
+
+}
+
+
+/* =========================
+   EDIT
+========================= */
+
+function editLead(id) {
+
+    const lead = leads.find(
+        item => item.id === id
+    );
+
+    if (!lead) return;
+
+    openModal(lead);
+
+}
+
+
+/* =========================
+   RENDER TABLE
+========================= */
 
 function renderLeads() {
 
@@ -147,22 +352,46 @@ function renderLeads() {
         .toLowerCase()
         .trim();
 
-    const filter = statusFilter.value;
+    const status = statusFilter.value;
+
+    const priority = priorityFilter.value;
 
 
-    const filteredLeads = leads.filter(function (lead) {
+    const filtered = leads.filter((lead) => {
+
+        const searchable = [
+
+            lead.business,
+            lead.contact,
+            lead.email,
+            lead.phone,
+            lead.location,
+            lead.source
+
+        ]
+            .join(" ")
+            .toLowerCase();
+
 
         const matchesSearch =
-            lead.business.toLowerCase().includes(search) ||
-            lead.contact.toLowerCase().includes(search) ||
-            lead.email.toLowerCase().includes(search) ||
-            lead.location.toLowerCase().includes(search);
+            searchable.includes(search);
+
 
         const matchesStatus =
-            filter === "all" ||
-            lead.status === filter;
+            status === "all" ||
+            lead.status === status;
 
-        return matchesSearch && matchesStatus;
+
+        const matchesPriority =
+            priority === "all" ||
+            lead.priority === priority;
+
+
+        return (
+            matchesSearch &&
+            matchesStatus &&
+            matchesPriority
+        );
 
     });
 
@@ -170,7 +399,11 @@ function renderLeads() {
     leadsTable.innerHTML = "";
 
 
-    if (filteredLeads.length === 0) {
+    visibleLeadCount.textContent =
+        `${filtered.length} ${filtered.length === 1 ? "lead" : "leads"}`;
+
+
+    if (filtered.length === 0) {
 
         emptyState.style.display = "block";
 
@@ -182,69 +415,138 @@ function renderLeads() {
     emptyState.style.display = "none";
 
 
-    filteredLeads.forEach(function (lead) {
+    filtered.forEach((lead) => {
 
         const row = document.createElement("tr");
+
+
+        const contactHTML = lead.email
+
+            ? `
+                <a href="mailto:${escapeAttr(lead.email)}">
+                    ${escapeHTML(lead.email)}
+                </a>
+            `
+
+            : `<span>${escapeHTML(lead.contact || "No contact")}</span>`;
+
+
+        const value = formatCurrency(lead.value);
 
 
         row.innerHTML = `
 
             <td>
 
-                <div class="business-name">
-                    ${escapeHTML(lead.business)}
+                <div class="business-cell">
+
+                    <strong>
+                        ${escapeHTML(lead.business)}
+                    </strong>
+
+                    ${
+                        lead.location
+                            ? `<small>${escapeHTML(lead.location)}</small>`
+                            : ""
+                    }
+
                 </div>
 
-                ${
-                    lead.email
-                        ? `<small>${escapeHTML(lead.email)}</small>`
-                        : ""
-                }
+            </td>
+
+
+            <td>
+
+                <div class="contact-cell">
+
+                    ${contactHTML}
+
+                    ${
+                        lead.phone
+                            ? `<small>${escapeHTML(lead.phone)}</small>`
+                            : ""
+                    }
+
+                </div>
 
             </td>
 
 
             <td>
 
-                ${escapeHTML(lead.contact || "—")}
-
-                ${
-                    lead.phone
-                        ? `<small>${escapeHTML(lead.phone)}</small>`
-                        : ""
-                }
-
-            </td>
-
-
-            <td>
-                ${escapeHTML(lead.location || "—")}
-            </td>
-
-
-            <td>
-
-                <span class="status ${lead.status}">
-                    ${lead.status}
+                <span class="source-tag">
+                    ${escapeHTML(lead.source || "Other")}
                 </span>
 
             </td>
 
 
             <td>
-                ${lead.date}
+
+                <span class="value-cell">
+                    ${value}
+                </span>
+
             </td>
 
 
             <td>
 
-                <button
-                    class="delete-btn"
-                    onclick="deleteLead(${lead.id})"
-                    title="Delete lead"
-                >
-                    🗑
-                </button>
+                <span class="priority ${escapeAttr(lead.priority || "Medium")}">
+                    ${escapeHTML(lead.priority || "Medium")}
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <span class="status ${escapeAttr(lead.status || "New")}">
+                    ${escapeHTML(lead.status || "New")}
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <div class="action-buttons">
+
+                    ${
+                        lead.website
+                            ? `
+                                <a
+                                    class="action-btn"
+                                    href="${escapeAttr(lead.website)}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    title="Open website"
+                                >
+                                    ↗
+                                </a>
+                            `
+                            : ""
+                    }
+
+
+                    <button
+                        class="action-btn"
+                        onclick="editLead(${lead.id})"
+                        title="Edit"
+                    >
+                        ✎
+                    </button>
+
+
+                    <button
+                        class="action-btn delete"
+                        onclick="deleteLead(${lead.id})"
+                        title="Delete"
+                    >
+                        ×
+                    </button>
+
+                </div>
 
             </td>
 
@@ -258,47 +560,146 @@ function renderLeads() {
 }
 
 
-/* Update stats */
+/* =========================
+   STATS
+========================= */
 
 function updateStats() {
 
-    totalLeads.textContent = leads.length;
+    const total = leads.length;
 
-    newLeads.textContent =
-        leads.filter(lead => lead.status === "New").length;
+    const fresh = leads.filter(
+        lead => lead.status === "New"
+    ).length;
 
-    interestedLeads.textContent =
-        leads.filter(lead => lead.status === "Interested").length;
+    const interested = leads.filter(
+        lead => lead.status === "Interested"
+    ).length;
 
-    closedLeads.textContent =
-        leads.filter(lead => lead.status === "Closed").length;
+    const closed = leads.filter(
+        lead => lead.status === "Closed"
+    ).length;
+
+
+    const totalValue = leads.reduce(
+        (sum, lead) => sum + Number(lead.value || 0),
+        0
+    );
+
+
+    const interestedVal = leads
+        .filter(lead => lead.status === "Interested")
+        .reduce(
+            (sum, lead) => sum + Number(lead.value || 0),
+            0
+        );
+
+
+    const closedVal = leads
+        .filter(lead => lead.status === "Closed")
+        .reduce(
+            (sum, lead) => sum + Number(lead.value || 0),
+            0
+        );
+
+
+    totalLeads.textContent = total;
+
+    newLeads.textContent = fresh;
+
+    interestedLeads.textContent = interested;
+
+    closedLeads.textContent = closed;
+
+
+    pipelineValue.textContent =
+        formatCurrency(totalValue);
+
+    interestedValue.textContent =
+        formatCurrency(interestedVal);
+
+    closedValue.textContent =
+        formatCurrency(closedVal);
+
+
+    conversionTotal.textContent = total;
+
+    conversionClosed.textContent = closed;
+
+
+    const rate =
+        total === 0
+            ? 0
+            : (closed / total) * 100;
+
+
+    conversionRate.textContent =
+        `${rate.toFixed(1)}%`;
+
+
+    const circleDegrees =
+        Math.min(rate, 100) * 3.6;
+
+
+    document.querySelector(
+        ".conversion-circle"
+    ).style.background =
+        `conic-gradient(
+            var(--accent) ${circleDegrees}deg,
+            #1c2028 ${circleDegrees}deg
+        )`;
+
+
+    const progress =
+        totalValue === 0
+            ? 0
+            : Math.min(
+                (closedVal / totalValue) * 100,
+                100
+            );
+
+
+    pipelineProgress.style.width =
+        `${progress}%`;
+
+
+    sidebarLeadCount.textContent = total;
 
 }
 
 
-/* Search */
+/* =========================
+   SEARCH
+========================= */
 
 searchInput.addEventListener(
     "input",
     renderLeads
 );
 
-
-/* Filter */
-
 statusFilter.addEventListener(
     "change",
     renderLeads
 );
 
+priorityFilter.addEventListener(
+    "change",
+    renderLeads
+);
 
-/* CSV Export */
 
-exportBtn.addEventListener("click", function () {
+/* =========================
+   EXPORT CSV
+========================= */
+
+function exportCSV() {
 
     if (leads.length === 0) {
 
-        alert("There are no leads to export.");
+        showToast(
+            "Nothing to export",
+            "Add at least one lead first."
+        );
 
         return;
 
@@ -306,33 +707,39 @@ exportBtn.addEventListener("click", function () {
 
 
     const headers = [
+
         "Business",
         "Contact",
         "Email",
         "Phone",
         "Website",
         "Location",
+        "Source",
+        "Value",
+        "Priority",
         "Status",
+        "Notes",
         "Date"
+
     ];
 
 
-    const rows = leads.map(function (lead) {
+    const rows = leads.map(lead => [
 
-        return [
+        lead.business,
+        lead.contact,
+        lead.email,
+        lead.phone,
+        lead.website,
+        lead.location,
+        lead.source,
+        lead.value,
+        lead.priority,
+        lead.status,
+        lead.notes,
+        formatDate(lead.date)
 
-            lead.business,
-            lead.contact,
-            lead.email,
-            lead.phone,
-            lead.website,
-            lead.location,
-            lead.status,
-            lead.date
-
-        ];
-
-    });
+    ]);
 
 
     const csv = [
@@ -342,9 +749,12 @@ exportBtn.addEventListener("click", function () {
 
     ]
         .map(row =>
-            row.map(value =>
-                `"${String(value || "").replace(/"/g, '""')}"`
-            ).join(",")
+            row
+                .map(value =>
+                    `"${String(value ?? "")
+                        .replace(/"/g, '""')}"`
+                )
+                .join(",")
         )
         .join("\n");
 
@@ -357,26 +767,198 @@ exportBtn.addEventListener("click", function () {
     );
 
 
-    const url = URL.createObjectURL(blob);
+    const url =
+        URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
+
+    const link =
+        document.createElement("a");
+
 
     link.href = url;
 
-    link.download = "leadforge-leads.csv";
+    link.download =
+        `leadforge-${new Date()
+            .toISOString()
+            .slice(0, 10)}.csv`;
+
+
+    document.body.appendChild(link);
 
     link.click();
 
+    link.remove();
+
     URL.revokeObjectURL(url);
+
+
+    showToast(
+        "Export complete",
+        `${leads.length} leads exported to CSV.`
+    );
+
+}
+
+
+$("sidebarExportBtn").addEventListener(
+    "click",
+    exportCSV
+);
+
+
+/* =========================
+   THEME
+========================= */
+
+const savedTheme =
+    localStorage.getItem("leadforge_theme");
+
+
+if (savedTheme === "light") {
+
+    document.body.classList.add("light");
+
+    $("themeBtn").textContent = "☀";
+
+}
+
+
+$("themeBtn").addEventListener("click", () => {
+
+    document.body.classList.toggle("light");
+
+
+    const isLight =
+        document.body.classList.contains("light");
+
+
+    localStorage.setItem(
+        "leadforge_theme",
+        isLight ? "light" : "dark"
+    );
+
+
+    $("themeBtn").textContent =
+        isLight ? "☀" : "☾";
 
 });
 
 
-/* Security helper */
+/* =========================
+   KEYBOARD SHORTCUT
+========================= */
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (
+            event.key.toLowerCase() === "n" &&
+            !["INPUT", "TEXTAREA", "SELECT"].includes(
+                document.activeElement.tagName
+            )
+        ) {
+
+            event.preventDefault();
+
+            openModal();
+
+        }
+
+
+        if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === "k"
+        ) {
+
+            event.preventDefault();
+
+            searchInput.focus();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   DATE
+========================= */
+
+$("currentDate").textContent =
+    new Intl.DateTimeFormat(
+        "en-IN",
+        {
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+        }
+    ).format(new Date());
+
+
+/* =========================
+   TOAST
+========================= */
+
+function showToast(title, message) {
+
+    toastTitle.textContent = title;
+
+    toastMessage.textContent = message;
+
+    toast.classList.add("show");
+
+
+    clearTimeout(toastTimer);
+
+
+    toastTimer = setTimeout(() => {
+
+        toast.classList.remove("show");
+
+    }, 3000);
+
+}
+
+
+/* =========================
+   HELPERS
+========================= */
+
+function formatCurrency(number) {
+
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 0
+        }
+    ).format(number || 0);
+
+}
+
+
+function formatDate(date) {
+
+    if (!date) return "—";
+
+
+    return new Intl.DateTimeFormat(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        }
+    ).format(new Date(date));
+
+}
+
 
 function escapeHTML(value) {
 
-    return String(value)
+    return String(value ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
@@ -386,8 +968,29 @@ function escapeHTML(value) {
 }
 
 
-/* Initial load */
+function escapeAttr(value) {
 
-renderLeads();
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
 
-updateStats();
+}
+
+
+/* =========================
+   INITIALIZE
+========================= */
+
+function renderAll() {
+
+    renderLeads();
+
+    updateStats();
+
+}
+
+
+renderAll();
